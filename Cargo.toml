@@ -14,9 +14,9 @@ repository = "https://github.com/lambda-fairy/rust-errno"
 description = "Cross-platform interface to the `errno` variable."
 categories = ["no-std", "os"]
 # Raised from 1.56 by the migration: `core::ffi::c_int` replaced `libc::c_int` and is stable
-# since 1.64. This fork is built inside werewolfdb, whose floor is 1.88 (see `msrv-policy`), so
-# it declares that rather than the lowest version its own source happens to allow.
-rust-version = "1.88"
+# since 1.64. This fork is built inside werewolfdb, whose floor is the current stable release
+# (see `msrv-policy`), so it declares that rather than the lowest version its own source allows.
+rust-version = "1.97"
 
 [target.'cfg(windows)'.dependencies.windows-sys]
 version = ">=0.52, <0.62"
