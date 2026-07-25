@@ -5,15 +5,18 @@ version = "0.3.14"
 authors = ["Chris Wong <lambda.fairy@gmail.com>", "Dan Gohman <dev@sunfishcode.online>"]
 
 license = "MIT OR Apache-2.0"
-edition = "2018"
+# Raised from 2018 with the MSRV: werewolfdb builds on 2021, and inline format captures —
+# which the project's coverage discipline depends on, since a positional `assert!` message
+# compiles a panic arm no test can reach — are a 2021 feature.
+edition = "2021"
 documentation = "https://docs.rs/errno"
 repository = "https://github.com/lambda-fairy/rust-errno"
 description = "Cross-platform interface to the `errno` variable."
 categories = ["no-std", "os"]
-rust-version = "1.56"
-
-[target.'cfg(unix)'.dependencies]
-libc = { version = "0.2", default-features = false }
+# Raised from 1.56 by the migration: `core::ffi::c_int` replaced `libc::c_int` and is stable
+# since 1.64. This fork is built inside werewolfdb, whose floor is 1.88 (see `msrv-policy`), so
+# it declares that rather than the lowest version its own source happens to allow.
+rust-version = "1.88"
 
 [target.'cfg(windows)'.dependencies.windows-sys]
 version = ">=0.52, <0.62"
@@ -30,7 +33,9 @@ libc = { version = "0.2", default-features = false }
 
 [features]
 default = ["std"]
-std = ["libc/std"]
+# `libc/std` is gone with the unix libc dependency; the remaining targets that still use the
+# crate declare it themselves and do not need `std` forwarded to it.
+std = []
 
 # TODO: Remove this exemption when Cygwin support lands in Rust stable
 # https://github.com/rust-lang/rust/pull/134999

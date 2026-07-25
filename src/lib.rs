@@ -100,12 +100,14 @@ pub fn set_errno(err: Errno) {
     sys::set_errno(err)
 }
 
+/// The value round-trips through the platform's `errno`, which is the crate's whole job.
 #[test]
 fn it_works() {
     let x = errno();
     set_errno(x);
 }
 
+/// Rendering goes through `strerror_r`; that it produces anything at all is the smoke test.
 #[cfg(feature = "std")]
 #[test]
 fn it_works_with_to_string() {
@@ -113,42 +115,62 @@ fn it_works_with_to_string() {
     let _ = x.to_string();
 }
 
+/// The description for errno 1 is the one glibc gives, which is also the proof that the
+/// XSI `__xpg_strerror_r` is what got linked: the GNU function of the same name returns
+/// `char *`, so binding it would make the status non-zero and take the error path instead.
+///
+/// The upstream test branched over seven platforms; this fork is built for Linux, so it
+/// asserts the Linux answer rather than carrying six arms no build here can reach.
 #[cfg(feature = "std")]
 #[test]
 fn check_description() {
-    let expect = if cfg!(windows) {
-        "Incorrect function."
-    } else if cfg!(target_os = "illumos") {
-        "Not owner"
-    } else if cfg!(target_os = "wasi") || cfg!(target_os = "emscripten") {
-        "Argument list too long"
-    } else if cfg!(target_os = "haiku") {
-        "Operation not allowed"
-    } else if cfg!(target_os = "vxworks") {
-        "operation not permitted"
-    } else {
-        "Operation not permitted"
-    };
-
-    let errno_code = if cfg!(target_os = "haiku") {
-        -2147483633
-    } else if cfg!(target_os = "hurd") {
-        1073741825
-    } else {
-        1
-    };
-    set_errno(Errno(errno_code));
-
-    assert_eq!(errno().to_string(), expect);
+    set_errno(Errno(1));
+    assert_eq!(errno().to_string(), "Operation not permitted");
     assert_eq!(
         format!("{:?}", errno()),
-        format!(
-            "Errno {{ code: {}, description: Some({:?}) }}",
-            errno_code, expect
-        )
+        "Errno { code: 1, description: Some(\"Operation not permitted\") }"
     );
 }
 
+/// A code the C library has no message for takes the failure path: `strerror_r` reports
+/// `EINVAL`, which is neither zero nor `ERANGE`, so the description is an error and
+/// `Display` falls back to naming the function that refused it.
+#[cfg(feature = "std")]
+#[test]
+fn an_unknown_code_reports_the_function_that_refused_it() {
+    let rendered = Errno(i32::MAX).to_string();
+    assert!(
+        rendered.starts_with(&format!(
+            "OS error {} (strerror_r returned error ",
+            i32::MAX
+        )),
+        "{rendered}"
+    );
+    let debug = format!("{:?}", Errno(i32::MAX));
+    assert!(
+        debug.contains("description: None"),
+        "an unknown code has no description: {debug}"
+    );
+}
+
+/// The code is the value, in both directions.
+#[test]
+fn a_code_converts_to_and_from_its_integer() {
+    assert_eq!(i32::from(Errno(7)), 7);
+    assert_eq!(Errno(7).0, 7);
+}
+
+/// The `Error` impl carries the deprecated `description`, which is still part of the
+/// surface this fork must keep identical to the crate it replaces.
+#[cfg(feature = "std")]
+#[test]
+#[allow(deprecated)]
+fn the_error_impl_describes_itself() {
+    use std::error::Error as _;
+    assert_eq!(Errno(1).description(), "system error");
+}
+
+/// An `io::Error` built from a code keeps that code's kind.
 #[cfg(feature = "std")]
 #[test]
 fn check_error_into_errno() {
