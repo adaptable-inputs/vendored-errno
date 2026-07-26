@@ -31,6 +31,17 @@ libc = { version = "0.2", default-features = false }
 [target.'cfg(target_os="hermit")'.dependencies]
 libc = { version = "0.2", default-features = false }
 
+# The benchmark runs the pre-migration implementation alongside the migrated one, so it needs the
+# crate the migration removed. Dev-only, and declared as a `test-exemption` in AGENTS.md: keeping
+# the original runnable is the only way to compare against it (capability `migration-benchmarks`).
+[dev-dependencies]
+criterion = "0.5"
+libc = { version = "0.2", default-features = false, features = ["std"] }
+
+[[bench]]
+name = "strerror"
+harness = false
+
 [features]
 default = ["std"]
 # `libc/std` is gone with the unix libc dependency; the remaining targets that still use the
