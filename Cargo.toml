@@ -35,7 +35,7 @@ libc = { version = "0.2", default-features = false }
 # crate the migration removed. Dev-only, and declared as a `test-exemption` in AGENTS.md: keeping
 # the original runnable is the only way to compare against it (capability `migration-benchmarks`).
 [dev-dependencies]
-criterion = "0.5"
+criterion = "0.8"
 libc = { version = "0.2", default-features = false, features = ["std"] }
 
 [[bench]]
